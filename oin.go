@@ -151,6 +151,18 @@ func (g *Oin) OPTIONS(path string, router *router.Router) {
 	g.handle(path, http.MethodOptions, router)
 }
 
+func (g *Oin) Any(path string, router *router.Router) {
+	var anyMethods = []string{
+		http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch,
+		http.MethodHead, http.MethodOptions, http.MethodDelete, http.MethodConnect,
+		http.MethodTrace,
+	}
+
+	for _, method := range anyMethods {
+		g.handle(path, method, router)
+	}
+}
+
 func (g *Oin) init() {
 	g.initRouters()
 	if g.Openapi == nil {
