@@ -10,6 +10,7 @@ import (
 	"os"
 	urlpath "path"
 	"strings"
+	"sync"
 
 	"github.com/Adachi324/oin/openapi"
 	"github.com/Adachi324/oin/router"
@@ -30,6 +31,7 @@ type Oin struct {
 	ErrorHandler   router.ErrorHandlerFunc
 	beforeInitFunc func()
 	afterInitFunc  func()
+	initOnce       sync.Once
 }
 
 func NewWithEngine(openapi *openapi.Openapi, g *gin.Engine) *Oin {
@@ -251,10 +253,18 @@ func (g *Oin) initRouters() {
 }
 
 func (g *Oin) Init() {
-	g.init()
-	for _, s := range g.subApps {
-		s.init()
-	}
+	g.initOnce.Do(func() {
+		if g.beforeInitFunc != nil {
+			g.beforeInitFunc()
+		}
+		g.init()
+		for _, s := range g.subApps {
+			s.init()
+		}
+		if g.afterInitFunc != nil {
+			g.afterInitFunc()
+		}
+	})
 }
 
 func (g *Oin) fullPath(path string) string {
@@ -270,21 +280,16 @@ func (g *Oin) AfterInit(f func()) {
 }
 
 func (g *Oin) Run(addr ...string) error {
-	if g.beforeInitFunc != nil {
-		g.beforeInitFunc()
-	}
-	g.init()
-	if g.afterInitFunc != nil {
-		g.afterInitFunc()
-	}
+	g.Init()
 	return g.Engine.Run(addr...)
 }
 
+func (g *Oin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	g.Engine.ServeHTTP(w, r)
+}
+
 func (g *Oin) StartGraceful(addr ...string) (*http.Server, error) {
-	g.init()
-	for _, s := range g.subApps {
-		s.init()
-	}
+	g.Init()
 	var address string
 	if len(addr) == 0 {
 		address = ":" + os.Getenv("PORT")

@@ -1,6 +1,7 @@
 package test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/Adachi324/oin/router"
@@ -19,8 +20,8 @@ type Response[T any] struct {
 }
 
 type TestRequest struct {
-	Username string `json:"username" form:"username" query:"username" description:"用户名"`
-	Password string `json:"password" form:"password" query:"password"`
+	Username string `json:"username"  description:"用户名"`
+	Password string `query:"password" description:"密码"`
 }
 
 type TestResponse struct {
@@ -64,4 +65,19 @@ func TestSwag(t *testing.T) {
 			Headers:     nil,
 		}})))
 	engine.Run(":8081")
+}
+
+func TestServeHTTP(t *testing.T) {
+	engine := oin.New(newOpenapi())
+	engine.POST("/test1/test2/dsads", router.New(
+		Handler,
+		router.Responses(router.Response{"200": router.ResponseItem{
+			Description: "Test api response",
+			Model:       Response[TestResponse]{},
+			Headers:     nil,
+		}})))
+	err := http.ListenAndServe(":8081", engine)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
