@@ -184,7 +184,9 @@ func (g *Oin) init() {
 	}
 	g.Engine.GET(g.fullPath(g.Openapi.OpenAPIUrl), openAPIHandler)
 	// Note: Docs 和 Redoc js 请求 openapi.json 的路径会多加一级 rootPath，不知道具体原因，这里做下适配
-	g.Engine.GET(urlpath.Join(g.rootPath, g.fullPath(g.Openapi.OpenAPIUrl)), openAPIHandler)
+	if urlpath.Join(g.rootPath, g.fullPath(g.Openapi.OpenAPIUrl)) != g.fullPath(g.Openapi.OpenAPIUrl) {
+		g.Engine.GET(urlpath.Join(g.rootPath, g.fullPath(g.Openapi.OpenAPIUrl)), openAPIHandler)
+	}
 
 	g.Engine.GET(g.fullPath(g.Openapi.DocsUrl), func(c *gin.Context) {
 		options := `{}`

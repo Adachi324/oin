@@ -1,8 +1,9 @@
 package test
 
 import (
-	"github.com/Adachi324/oin/router"
 	"testing"
+
+	"github.com/Adachi324/oin/router"
 
 	"github.com/Adachi324/oin"
 	"github.com/Adachi324/oin/openapi"
@@ -18,7 +19,7 @@ type Response[T any] struct {
 }
 
 type TestRequest struct {
-	Username string `json:"username" form:"username" query:"username"`
+	Username string `json:"username" form:"username" query:"username" description:"用户名"`
 	Password string `json:"password" form:"password" query:"password"`
 }
 
