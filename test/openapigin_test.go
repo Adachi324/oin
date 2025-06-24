@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -25,14 +26,17 @@ type TestRequest struct {
 }
 
 type TestResponse struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    TestRequest `json:"data"`
 }
 
 func Handler(c *gin.Context, req TestRequest) {
+
 	var resp TestResponse
 	resp.Code = 200
 	resp.Message = "success"
+	resp.Data = req
 	c.JSON(200, resp)
 }
 func newOpenapi() *openapi.Openapi {
@@ -54,6 +58,35 @@ func newOpenapi() *openapi.Openapi {
 	)
 }
 
+type Gender int
+
+const (
+	GenderUnknown Gender = 0
+	GenderMale    Gender = 1
+	GenderFemale  Gender = 2
+)
+
+func (g Gender) Enums() map[string]any {
+	return map[string]any{
+		"unknown": GenderUnknown,
+		"male":    GenderMale,
+		"female":  GenderFemale,
+		"trans":   "trans",
+	}
+}
+
+type ExampleReqVo struct {
+	ID     int    `json:"id" binding:"required" description:"一个ID"`
+	Name   string `query:"name" description:"一个名字"`
+	Gender Gender `json:"gender" description:"一个性别"`
+}
+
+type ExampleRespVo struct {
+	ID     int    `json:"id" binding:"required"`
+	Name   string `json:"name" binding:"required"`
+	Gender Gender `json:"gender" binding:"required"`
+}
+
 func TestSwag(t *testing.T) {
 	engine := oin.New(newOpenapi())
 	//engine.Use(...)
@@ -64,9 +97,29 @@ func TestSwag(t *testing.T) {
 			Model:       Response[TestResponse]{},
 			Headers:     nil,
 		}})))
-	engine.Run(":8081")
+	engine.POST("/ex", router.New(
+		ExampleHandler,
+		router.Responses(router.Response{
+			"200": router.ResponseItem{
+				Description: "success",
+				Model:       Response[ExampleRespVo]{},
+				Headers:     nil,
+			},
+		}),
+		router.Description("一个示例请求"),
+		router.Summary("一个示例summary"),
+		router.OperationID("example operation id"),
+		router.Deprecated(),
+	))
+	engine.Run(":8082")
 }
-
+func ExampleHandler(c *gin.Context, reqVo ExampleReqVo) {
+	c.JSON(200, ExampleRespVo{
+		ID:     reqVo.ID,
+		Name:   reqVo.Name,
+		Gender: reqVo.Gender,
+	})
+}
 func TestServeHTTP(t *testing.T) {
 	engine := oin.New(newOpenapi())
 	engine.POST("/test1/test2/dsads", router.New(
@@ -76,6 +129,15 @@ func TestServeHTTP(t *testing.T) {
 			Model:       Response[TestResponse]{},
 			Headers:     nil,
 		}})))
+
+	engine.Engine.Use(func(c *gin.Context) {
+		fmt.Println("test_gin_middleware")
+		c.Next()
+	})
+
+	engine.Engine.GET("/test_gin", func(c *gin.Context) {
+		c.JSON(200, gin.H{"message": "success"})
+	})
 	err := http.ListenAndServe(":8081", engine)
 	if err != nil {
 		t.Fatal(err)

@@ -99,9 +99,9 @@ func (router *Router) BindModel(req any) gin.HandlerFunc {
 				}
 			}()
 
-			if err = Validate.Struct(model); err != nil {
-				return err
-			}
+			// zf err = Validate.Struct(model); err != nil {
+			// 	return err
+			// }
 
 			if err = copier.Copy(req, model); err != nil {
 				return err
