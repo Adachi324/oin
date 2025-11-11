@@ -55,6 +55,11 @@ func newOpenapi() *openapi.Openapi {
 			Email: "",
 		}),
 		openapi.TermsOfService(""),
+		openapi.DocsMiddleware(
+			gin.BasicAuth(gin.Accounts{
+				"dev": "dev123",
+			}),
+		),
 	)
 }
 
@@ -88,7 +93,7 @@ type ExampleRespVo struct {
 }
 
 func TestSwag(t *testing.T) {
-	engine := oin.New(newOpenapi())
+	engine := oin.New(newOpenapi().WithDocsEnabled(false))
 	//engine.Use(...)
 	engine.POST("/test1/test2/dsads", router.New(
 		Handler,

@@ -85,3 +85,24 @@ func RedocOptions(options map[string]any) Option {
 		openapi.RedocOptions = options
 	}
 }
+
+// DisableDocs 禁用文档端点（生产环境推荐）
+func DisableDocs() Option {
+	return func(openapi *Openapi) {
+		openapi.DocsEnabled = false
+	}
+}
+
+// EnableDocs 启用文档端点
+func EnableDocs() Option {
+	return func(openapi *Openapi) {
+		openapi.DocsEnabled = true
+	}
+}
+
+// DocsMiddleware 为文档端点添加中间件（例如身份验证）
+func DocsMiddleware(middleware ...gin.HandlerFunc) Option {
+	return func(openapi *Openapi) {
+		openapi.DocsMiddleware = middleware
+	}
+}

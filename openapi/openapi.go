@@ -48,6 +48,8 @@ type Openapi struct {
 	OpenAPI        *openapi3.T
 	OpenapiOptions map[string]any
 	RedocOptions   map[string]any
+	DocsEnabled    bool              // 是否启用文档端点，默认 true
+	DocsMiddleware []gin.HandlerFunc // 文档端点的中间件（例如身份验证）
 }
 
 func New(title, description, version string, options ...Option) *Openapi {
@@ -58,6 +60,7 @@ func New(title, description, version string, options ...Option) *Openapi {
 		DocsUrl:     "/docs",
 		RedocUrl:    "/redoc",
 		OpenAPIUrl:  "/openapi.json",
+		DocsEnabled: true, // 默认启用，生产环境建议禁用
 	}
 	for _, option := range options {
 		option(openapi)
@@ -786,6 +789,16 @@ func (openapi *Openapi) WithOpenapiOptions(options map[string]any) *Openapi {
 
 func (openapi *Openapi) WithRedocOptions(options map[string]any) *Openapi {
 	RedocOptions(options)(openapi)
+	return openapi
+}
+
+func (openapi *Openapi) WithDocsEnabled(enabled bool) *Openapi {
+	openapi.DocsEnabled = enabled
+	return openapi
+}
+
+func (openapi *Openapi) WithDocsMiddleware(middleware ...gin.HandlerFunc) *Openapi {
+	DocsMiddleware(middleware...)(openapi)
 	return openapi
 }
 

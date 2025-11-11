@@ -172,6 +172,12 @@ func (g *Oin) init() {
 	}
 	gin.DisableBindValidation()
 
+	// 检查是否启用文档
+	if !g.Openapi.DocsEnabled {
+		g.Openapi.BuildOpenAPI()
+		return
+	}
+
 	openAPIHandler := func(c *gin.Context) {
 		if strings.HasSuffix(g.Openapi.OpenAPIUrl, ".yml") ||
 			strings.HasSuffix(g.Openapi.OpenAPIUrl, ".yaml") {
@@ -184,13 +190,17 @@ func (g *Oin) init() {
 			c.JSON(http.StatusOK, g.Openapi)
 		}
 	}
-	g.Engine.GET(g.fullPath(g.Openapi.OpenAPIUrl), openAPIHandler)
+
+	// 为 OpenAPI 端点应用中间件
+	openAPIHandlers := append(g.Openapi.DocsMiddleware, openAPIHandler)
+	g.Engine.GET(g.fullPath(g.Openapi.OpenAPIUrl), openAPIHandlers...)
 	// Note: Docs 和 Redoc js 请求 openapi.json 的路径会多加一级 rootPath，不知道具体原因，这里做下适配
 	if urlpath.Join(g.rootPath, g.fullPath(g.Openapi.OpenAPIUrl)) != g.fullPath(g.Openapi.OpenAPIUrl) {
-		g.Engine.GET(urlpath.Join(g.rootPath, g.fullPath(g.Openapi.OpenAPIUrl)), openAPIHandler)
+		g.Engine.GET(urlpath.Join(g.rootPath, g.fullPath(g.Openapi.OpenAPIUrl)), openAPIHandlers...)
 	}
 
-	g.Engine.GET(g.fullPath(g.Openapi.DocsUrl), func(c *gin.Context) {
+	// 为 Swagger UI 应用中间件
+	docsHandler := func(c *gin.Context) {
 		options := `{}`
 		if g.Openapi.OpenapiOptions != nil {
 			data, err := json.Marshal(g.Openapi.OpenapiOptions)
@@ -204,9 +214,12 @@ func (g *Oin) init() {
 			"title":           g.Openapi.Title,
 			"openapi_options": options,
 		})
-	})
+	}
+	docsHandlers := append(g.Openapi.DocsMiddleware, docsHandler)
+	g.Engine.GET(g.fullPath(g.Openapi.DocsUrl), docsHandlers...)
 
-	g.Engine.GET(g.fullPath(g.Openapi.RedocUrl), func(c *gin.Context) {
+	// 为 Redoc 应用中间件
+	redocHandler := func(c *gin.Context) {
 		options := `{}`
 		if g.Openapi.RedocOptions != nil {
 			data, err := json.Marshal(g.Openapi.RedocOptions)
@@ -220,7 +233,10 @@ func (g *Oin) init() {
 			"title":         g.Openapi.Title,
 			"redoc_options": options,
 		})
-	})
+	}
+	redocHandlers := append(g.Openapi.DocsMiddleware, redocHandler)
+	g.Engine.GET(g.fullPath(g.Openapi.RedocUrl), redocHandlers...)
+
 	g.Openapi.BuildOpenAPI()
 }
 
